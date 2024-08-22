@@ -30,6 +30,38 @@ usersRouter.put('/user/:id', async (req, res) => {
     }
 });
 
+usersRouter.get('/filter/users/:query', async (req, res) => {
+    const { query } = req.params;
+    try {
+        const user = await User.aggregate([
+            {
+                $match: {
+                    $or: [
+                        {
+                            userName: {
+                                $regex: new RegExp(query, 'i')
+                            }
+                        },
+                        { 'details.names': { $regex: new RegExp(query, 'i') } },
+                        { 'details.lastNames': { $regex: new RegExp(query, 'i') } }
+                    ]
+                }
+            },
+            {
+                $project : {
+                    name: { $concat: ["$userName", "-", "$details.names", " ", "$details.lastNames"] },
+                    _id: 1
+                }
+            }
+        ]).skip(0).limit(5);
+        console.log(user);
+        res.send(user);
+    } catch (error) {
+        console.error("Error in filter user", error);
+        res.status(500).send(error);
+    }
+});
+
 usersRouter.get('/user/:id', async (req, res) => {
     const { id } = req.params;
     try {
